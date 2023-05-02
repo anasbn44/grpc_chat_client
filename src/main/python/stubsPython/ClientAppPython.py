@@ -3,7 +3,6 @@ import chat_pb2
 import chat_pb2_grpc
 
 
-
 class ClientApp:
     def __init__(self):
         self.is_connected = False
@@ -15,11 +14,10 @@ class ClientApp:
     def start_app(self):
         channel = grpc.insecure_channel('localhost:1997')
         stub = chat_pb2_grpc.ChatServicesStub(channel)
-        resp = stub.connexion(chat_pb2.Client(name="blbla"))
         
         print("starting app ")
         while True:
-            command = input().strip()
+            command = input('>>>')
             if command == 'exit':
                 if self.is_connected:
                     self.disconnect(stub, self.client.name)
@@ -70,6 +68,7 @@ class ClientApp:
     def connect(self, stub, nick_name):
         self.client = chat_pb2.Client(name=nick_name)
         responses = stub.connexion(self.client)
+
         for response in responses:
             if response.type == chat_pb2.ResponseType.Value('ISCONNECTED'):
                 print('----------------------------')

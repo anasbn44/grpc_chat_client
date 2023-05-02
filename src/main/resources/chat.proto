@@ -16,11 +16,6 @@ message Channel {
   Client client = 2;
 }
 
-message ChannelMenbers{
-  string channelName = 1;
-  repeated Client members = 2;
-}
-
 message Client{
   string name = 1;
 }

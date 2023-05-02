@@ -30,12 +30,12 @@ public class ClientApp {
         ManagedChannel managedChannel = ManagedChannelBuilder.forAddress("localhost", 1997).usePlaintext().build();
         ChatServicesGrpc.ChatServicesStub servicesStub = ChatServicesGrpc.newStub(managedChannel);
         Scanner s = new Scanner(System.in);
-
+        System.out.println("begin");
         String command = s.nextLine();
         do{
 
             if(command.contains(" ")){
-                String[] args = command.split(" ");
+                String[] args = command.split(" ", 2);
 
                 switch (args[0]){
                     case "connect":
@@ -74,7 +74,6 @@ public class ClientApp {
                         break;
                     case "leave" :
                         if (isJoined){
-                            isJoined = false;
                             leave(servicesStub, args[1]);
                         } else {
                             System.out.println("you need to join a channel");
@@ -82,19 +81,20 @@ public class ClientApp {
                         break;
                     case "disconnect" :
                         if (isConnected){
-                            isConnected = false;
                             disconnect(servicesStub, args[1]);
                         } else {
                             System.out.println("you need to be connected first");
                         }
                         break;
                 }
+
             } else {
                 System.out.println("syntax error !!!");
             }
-
+            command = s.nextLine();
 
         }while (!command.equals("exit"));
+        quit(servicesStub);
     }
 
     private void connect(ChatServicesGrpc.ChatServicesStub servicesStub, String nickName) throws IOException {
@@ -103,9 +103,16 @@ public class ClientApp {
         StreamObserver<Chat.Client> connexion = servicesStub.connexion(new StreamObserver<Chat.Response>() {
             @Override
             public void onNext(Chat.Response response) {
-                System.out.println("----------------------------");
-                System.out.println("connect as " + nickName + " status : " + response.getType());
-                System.out.println("----------------------------");
+                if(response.getType() == Chat.ResponseType.ISCONNECTED){
+                    System.out.println("----------------------------");
+                    System.out.println("connect as " + nickName + " status : " + response.getType());
+                    System.out.println("----------------------------");
+                }else {
+                    System.out.println("----------------------------");
+                    System.out.println(response.getMessage());
+                    System.out.println("----------------------------");
+                }
+
             }
 
             @Override
@@ -172,6 +179,7 @@ public class ClientApp {
             }
         });
         leaving.onNext(channel);
+        isJoined = false;
         leaving.onCompleted();
     }
 
@@ -212,8 +220,8 @@ public class ClientApp {
         StreamObserver<Chat.Channel> listing = servicesStub.listClient(new StreamObserver<Chat.Response>() {
             @Override
             public void onNext(Chat.Response response) {
-                System.out.println(response.getType());
                 System.out.println("----------------------------");
+                System.out.println(response.getType());
                 System.out.println(String.format("the clients list in channel %s : \n%s", channelName, response.getMessage()));
                 System.out.println("----------------------------");
             }
@@ -237,6 +245,9 @@ public class ClientApp {
             System.out.println("wrong channel, the channel you've joined is " + client.getName());
             return;
         }
+        if(isJoined){
+            leave(servicesStub, channel.getChanelName());
+        }
         StreamObserver<Chat.Client> disconnecting = servicesStub.disconnect(new StreamObserver<Chat.Response>() {
             @Override
             public void onNext(Chat.Response response) {
@@ -256,7 +267,13 @@ public class ClientApp {
             }
         });
         disconnecting.onNext(client);
+        isConnected = false;
         disconnecting.onCompleted();
     }
 
+    private void quit(ChatServicesGrpc.ChatServicesStub servicesStub){
+        if(isConnected){
+            disconnect(servicesStub, client.getName());
+        }
+    }
 }
